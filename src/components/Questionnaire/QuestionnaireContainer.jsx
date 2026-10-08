@@ -28,18 +28,7 @@ export default function QuestionnaireContainer({
   const [isReviewing, setIsReviewing] = useState(false);
   const [validationError, setValidationError] = useState('');
 
-  // When active patient changes, update form data to that patient's draft
-  useEffect(() => {
-    if (activePatient?.draftDoctorVisit?.formData) {
-      setFormData({ ...initialQuestionnaireData, ...activePatient.draftDoctorVisit.formData });
-      setCurrentStep(activePatient.draftDoctorVisit.step || 1);
-    } else {
-      setFormData({ ...initialQuestionnaireData });
-      setCurrentStep(1);
-    }
-    setIsReviewing(false);
-    setValidationError('');
-  }, [activePatient?.id]);
+
 
   // Save draft for this active patient
   useEffect(() => {
@@ -139,14 +128,26 @@ export default function QuestionnaireContainer({
   return (
     <div className="questionnaire-wrapper">
       {/* Header */}
-      <div className="page-header">
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'var(--cs-primary-light)', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--cs-primary)', marginBottom: '0.5rem' }}>
-          <span>Preparing Visit for: <strong>{patientName}</strong> ({relationship})</span>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'var(--cs-primary-light)', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--cs-primary)', marginBottom: '0.5rem' }}>
+            <span>Preparing Visit for: <strong>{patientName}</strong> ({relationship})</span>
+          </div>
+          <h1 className="page-title">Prepare for My Doctor Visit</h1>
+          <p className="page-subtitle">
+            Answer a few questions to organize what you&apos;re experiencing into a clear summary you can share with a doctor.
+          </p>
         </div>
-        <h1 className="page-title">Prepare for My Doctor Visit</h1>
-        <p className="page-subtitle">
-          Answer a few questions to organize what you're experiencing into a clear summary you can share with a doctor.
-        </p>
+        {onBackToDashboard && (
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={onBackToDashboard}
+            aria-label="Back to dashboard"
+          >
+            &larr; Back to Dashboard
+          </button>
+        )}
       </div>
 
       <div className="cs-card">

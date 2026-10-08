@@ -210,6 +210,9 @@ export function generateDoctorVisitPdf(summary) {
     doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
   }
 
-  // Save the PDF
-  doc.save('CareSync-Doctor-Visit-Summary.pdf');
+  // Save the PDF if in browser environment
+  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    doc.save('CareSync-Doctor-Visit-Summary.pdf');
+  }
+  return doc;
 }

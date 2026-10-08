@@ -120,7 +120,7 @@ export function getAuthUser() {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.USER);
     return raw ? JSON.parse(raw) : null;
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 }
@@ -129,7 +129,7 @@ export function isUserLoggedIn() {
   return localStorage.getItem(STORAGE_KEYS.IS_LOGGED_IN) === 'true';
 }
 
-export function loginUser(email, password, rememberMe = true) {
+export function loginUser(email, _password, _rememberMe = true) {
   const storedUser = getAuthUser();
   if (storedUser && storedUser.email.toLowerCase() === email.toLowerCase()) {
     localStorage.setItem(STORAGE_KEYS.IS_LOGGED_IN, 'true');
@@ -229,7 +229,7 @@ export function getPatients() {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.PATIENTS);
     return raw ? JSON.parse(raw) : [];
-  } catch (e) {
+  } catch (_e) {
     return [];
   }
 }
@@ -251,14 +251,23 @@ export function getActivePatientId() {
       localStorage.setItem(STORAGE_KEYS.ACTIVE_PATIENT_ID, patients[0].id);
       return patients[0].id;
     }
-  } catch (e) {}
+  } catch (_e) {
+    return null;
+  }
   return null;
+}
+
+export function getPatientById(id) {
+  const patients = getPatients();
+  return patients.find(p => p.id === id) || null;
 }
 
 export function setActivePatientId(id) {
   try {
     localStorage.setItem(STORAGE_KEYS.ACTIVE_PATIENT_ID, id);
-    window.dispatchEvent(new CustomEvent('caresync_patient_changed', { detail: { patientId: id } }));
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('caresync_patient_changed', { detail: { patientId: id } }));
+    }
   } catch (e) {
     console.error('Failed to set active patient ID', e);
   }

@@ -7,7 +7,7 @@ export default function Navbar({
   patients,
   onSelectPatient,
   onSignOut,
-  authUser
+  _authUser
 }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);

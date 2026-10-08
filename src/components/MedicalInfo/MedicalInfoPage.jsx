@@ -62,7 +62,7 @@ export default function MedicalInfoPage({ activePatient, onAddReport, onBackToDa
 
       {saveSuccess && (
         <div style={{ background: 'var(--cs-primary-light)', border: '1px solid var(--cs-primary-border)', color: 'var(--cs-primary-hover)', padding: '0.875rem 1.25rem', borderRadius: '8px', fontSize: '0.9375rem', marginBottom: '1.5rem' }}>
-          ✓ Document successfully saved to <strong>{activePatient.fullName}</strong>'s medical records!
+          ✓ Document successfully saved to <strong>{activePatient.fullName}</strong>&apos;s medical records!
         </div>
       )}
 
@@ -71,7 +71,7 @@ export default function MedicalInfoPage({ activePatient, onAddReport, onBackToDa
           Attach Document for {activePatient.fullName}
         </h2>
         <p style={{ fontSize: '0.875rem', color: 'var(--cs-text-muted)', marginBottom: '1.25rem' }}>
-          Select lab reports, imaging results, discharge summaries, or clinical prescriptions to associate with this patient's health profile.
+          Select lab reports, imaging results, discharge summaries, or clinical prescriptions to associate with this patient&apos;s health profile.
         </p>
 
         {!selectedFile ? (
@@ -152,7 +152,7 @@ export default function MedicalInfoPage({ activePatient, onAddReport, onBackToDa
                 className="btn btn-primary"
                 style={{ width: '100%' }}
               >
-                Save Document to {activePatient.fullName}'s Profile
+                Save Document to {activePatient.fullName}&apos;s Profile
               </button>
             </form>
           </div>
@@ -164,7 +164,7 @@ export default function MedicalInfoPage({ activePatient, onAddReport, onBackToDa
           <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
         </svg>
         <div>
-          <strong>Architecture Prepared:</strong> Document records are isolated per patient. When AI PDF analysis is integrated in the next release, medical summaries and extracted metrics will automatically bind directly to {activePatient.fullName}'s clinical profile.
+          <strong>Architecture Prepared:</strong> Document records are isolated per patient. When AI PDF analysis is integrated in the next release, medical summaries and extracted metrics will automatically bind directly to {activePatient.fullName}&apos;s clinical profile.
         </div>
       </div>
     </div>

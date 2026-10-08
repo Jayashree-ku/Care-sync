@@ -110,7 +110,7 @@ export default function LoginPage({ onLoginSuccess, onNavigateToSignup }) {
 
         <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--cs-border)', textAlign: 'center' }}>
           <p style={{ fontSize: '0.9375rem', color: 'var(--cs-text-muted)' }}>
-            Don't have an account yet?{' '}
+            Don&apos;t have an account yet?{' '}
             <button
               type="button"
               onClick={onNavigateToSignup}

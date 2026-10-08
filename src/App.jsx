@@ -79,7 +79,10 @@ export default function App() {
     try {
       const saved = localStorage.getItem('caresync_active_summary');
       if (saved) return JSON.parse(saved);
-    } catch (e) {}
+    } catch (_err) {
+      // Graceful fallback if storage item is corrupt or unavailable
+      return null;
+    }
     return null;
   });
 
@@ -223,7 +226,9 @@ export default function App() {
     setActiveSummary(summary);
     try {
       localStorage.setItem('caresync_active_summary', JSON.stringify(summary));
-    } catch (e) {}
+    } catch (_err) {
+      // Storage quota or restriction fallback
+    }
 
     const updated = getPatients();
     setPatients(updated);
@@ -342,6 +347,7 @@ export default function App() {
         {/* PREPARE FOR DOCTOR VISIT */}
         {currentPath === '/doctor-visit' && activePatient && (
           <QuestionnaireContainer
+            key={activePatient.id}
             activePatient={activePatient}
             onGenerateSummary={handleGenerateDoctorVisitSummary}
             onBackToDashboard={() => navigateTo('/')}

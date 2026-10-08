@@ -79,6 +79,25 @@ CareSync is engineered with a **responsive, touch-optimized clinical design syst
    - Family members often manage healthcare for elderly parents, children, and themselves simultaneously.
    - Medical information is scattered across notes, prescription bottles, and chat messages with no patient-level isolation.
 
+## ♿ Alignment with Challenge: AI for Healthcare Accessibility
+
+CareSync directly tackles the hackathon challenge **"AI for Healthcare Accessibility"** by dismantling the three largest barriers in modern healthcare delivery:
+
+1. **Cognitive & Health Literacy Accessibility**:
+   - Complex medical histories and confusing clinical terminology create severe anxiety and communication barriers.
+   - CareSync breaks down clinical intake into an intuitive 12-step guided flow with accessible plain-English prompt chips, eliminating cognitive overload.
+
+2. **In-Clinic Communication Accessibility ("Show Doctor" Mode)**:
+   - For patients with speech difficulties, severe acute pain, clinical anxiety, or language barriers, explaining complex symptoms across an examination desk is daunting.
+   - CareSync provides a dedicated high-contrast, distraction-free **Show Doctor** mode formatted with large typography, bold chief complaints, and bright red allergy flags for a 30-second physician review.
+
+3. **Caregiver Accessibility (Multi-Patient Architecture)**:
+   - Millions of individuals act as informal caregivers for aging parents, children, or relatives with disabilities.
+   - CareSync provides complete patient isolation with instant switching, allowing caregivers to manage distinct clinical histories, prescriptions, and visit summaries without data cross-contamination.
+
+4. **Ethical & Hallucination-Free Clinical Safety**:
+   - Healthcare accessibility requires trustworthy technology. CareSync uses deterministic clinical synthesis rather than unconstrained generative models, preventing AI hallucinations while preserving verbatim patient context.
+
 ---
 
 ## 💡 What CareSync Delivers
@@ -202,12 +221,17 @@ npm run dev
 
 Visit `http://localhost:5175` in your browser.
 
-### Run Automated Tests
-
-To run the end-to-end family health data isolation and questionnaire test suite:
+### Run Automated Tests & Code Quality Checks
 
 ```bash
+# Run 6 automated test suites (unit, accessibility, integration, and e2e)
 npm test
+
+# Verify ESLint code quality (0 errors, 0 warnings)
+npm run lint
+
+# Format code with Prettier
+npm run format
 ```
 
 ### Build for Production

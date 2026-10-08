@@ -6,7 +6,7 @@ export default function QuestionStep({
   onChange,
   onFileSelect,
   onFileRemove,
-  validationError
+  _validationError
 }) {
   const update = (field, value) => {
     onChange(field, value);
@@ -501,7 +501,7 @@ export default function QuestionStep({
                 className={`quick-chip-btn ${formData.regularMedicines === "I'm not sure" ? 'active' : ''}`}
                 onClick={() => update('regularMedicines', "I'm not sure")}
               >
-                I'm not sure
+                I&apos;m not sure
               </button>
             </div>
           </div>
@@ -547,7 +547,7 @@ export default function QuestionStep({
                 className={`quick-chip-btn ${formData.existingConditions === "I'm not sure" ? 'active' : ''}`}
                 onClick={() => update('existingConditions', "I'm not sure")}
               >
-                I'm not sure
+                I&apos;m not sure
               </button>
             </div>
           </div>
@@ -593,7 +593,7 @@ export default function QuestionStep({
                 className={`quick-chip-btn ${formData.knownAllergies === "I'm not sure" ? 'active' : ''}`}
                 onClick={() => update('knownAllergies', "I'm not sure")}
               >
-                I'm not sure
+                I&apos;m not sure
               </button>
             </div>
           </div>

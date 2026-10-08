@@ -96,7 +96,7 @@ export default function SummaryView({
       try {
         await navigator.clipboard.writeText(textToShare);
         showToast('Summary copied to clipboard.');
-      } catch (err) {
+      } catch (_err) {
         showToast('Failed to copy to clipboard.');
       }
     } else {

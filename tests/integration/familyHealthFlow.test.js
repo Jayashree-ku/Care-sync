@@ -2,7 +2,7 @@
 // Tests the exact 26-step verification sequence specified by the user.
 
 import { jsPDF } from 'jspdf';
-import { generateDoctorVisitSummary } from './src/utils/summaryGenerator.js';
+import { generateDoctorVisitSummary } from '../../src/utils/summaryGenerator.js';
 
 // Setup Mock LocalStorage for pure Node testing
 const mockStorage = {};
@@ -12,17 +12,13 @@ global.localStorage = {
   removeItem: (key) => { delete mockStorage[key]; },
   clear: () => { Object.keys(mockStorage).forEach(k => delete mockStorage[k]); }
 };
-global.window = {
-  dispatchEvent: () => {}
-};
-global.CustomEvent = class CustomEvent {};
 
 console.log('=================================================================');
 console.log('   CARESYNC FAMILY HEALTH MANAGEMENT E2E VERIFICATION SUITE   ');
 console.log('=================================================================\n');
 
 // Import store after setting up mock localStorage
-const store = await import('./src/data/familyStore.js');
+const store = await import('../../src/data/familyStore.js');
 
 // Step 1: Open CareSync
 console.log('Step 1: Initializing CareSync application state...');
