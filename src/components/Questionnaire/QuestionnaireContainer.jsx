@@ -2,30 +2,51 @@ import React, { useState, useEffect } from 'react';
 import ProgressBar from './ProgressBar';
 import QuestionStep from './QuestionStep';
 import ReviewScreen from './ReviewScreen';
-import {
-  loadQuestionnaireData,
-  saveQuestionnaireData,
-  loadSavedStep,
-  saveCurrentStep
-} from '../../data/questionnaireData';
+import { initialQuestionnaireData } from '../../data/questionnaireData';
+import { savePatientDoctorVisitDraft } from '../../data/familyStore';
 
-export default function QuestionnaireContainer({ onGenerateSummary, onBackToDashboard }) {
-  const [formData, setFormData] = useState(() => loadQuestionnaireData());
-  const [currentStep, setCurrentStep] = useState(() => loadSavedStep());
+export default function QuestionnaireContainer({
+  activePatient,
+  onGenerateSummary,
+  onBackToDashboard
+}) {
+  // Initialize form data from active patient's draft or defaults
+  const [formData, setFormData] = useState(() => {
+    if (activePatient?.draftDoctorVisit?.formData) {
+      return { ...initialQuestionnaireData, ...activePatient.draftDoctorVisit.formData };
+    }
+    return { ...initialQuestionnaireData };
+  });
+
+  const [currentStep, setCurrentStep] = useState(() => {
+    if (activePatient?.draftDoctorVisit?.step) {
+      return activePatient.draftDoctorVisit.step;
+    }
+    return 1;
+  });
+
   const [isReviewing, setIsReviewing] = useState(false);
   const [validationError, setValidationError] = useState('');
 
-  // Persist formData on change
+  // When active patient changes, update form data to that patient's draft
   useEffect(() => {
-    saveQuestionnaireData(formData);
-  }, [formData]);
-
-  // Persist currentStep on change
-  useEffect(() => {
-    if (!isReviewing) {
-      saveCurrentStep(currentStep);
+    if (activePatient?.draftDoctorVisit?.formData) {
+      setFormData({ ...initialQuestionnaireData, ...activePatient.draftDoctorVisit.formData });
+      setCurrentStep(activePatient.draftDoctorVisit.step || 1);
+    } else {
+      setFormData({ ...initialQuestionnaireData });
+      setCurrentStep(1);
     }
-  }, [currentStep, isReviewing]);
+    setIsReviewing(false);
+    setValidationError('');
+  }, [activePatient?.id]);
+
+  // Save draft for this active patient
+  useEffect(() => {
+    if (activePatient?.id) {
+      savePatientDoctorVisitDraft(activePatient.id, currentStep, formData);
+    }
+  }, [activePatient?.id, currentStep, formData]);
 
   const handleFieldChange = (field, value) => {
     setFormData((prev) => ({
@@ -55,40 +76,16 @@ export default function QuestionnaireContainer({ onGenerateSummary, onBackToDash
     switch (step) {
       case 1:
         if (!formData.currentSymptoms || !formData.currentSymptoms.trim()) {
-          return 'Please describe what you are currently experiencing to continue.';
+          return 'Please describe what you are currently experiencing before continuing.';
         }
         return '';
       case 2:
-        if (!formData.whenNoticed) {
-          return 'Please select when you first noticed these symptoms.';
-        }
-        return '';
-      case 3:
-        if (!formData.frequency) {
-          return 'Please select how often this happens.';
-        }
-        return '';
-      case 4:
-        if (!formData.timingOptions || formData.timingOptions.length === 0) {
-          return 'Please select at least one time or situation when this usually happens.';
-        }
-        return '';
-      case 5:
-        if (!formData.dailyImpact || !formData.dailyImpact.trim()) {
-          return 'Please describe how this is affecting you or select a suggestion chip.';
-        }
-        return '';
-      case 6:
-        if (!formData.experiencedBefore) {
-          return 'Please indicate whether you have experienced this before.';
-        }
-        return '';
-      case 7:
-        if (!formData.takenMedication) {
-          return 'Please indicate whether you have taken anything for this.';
+        if (!formData.whenNoticed || !formData.whenNoticed.trim()) {
+          return 'Please select when you first noticed this before continuing.';
         }
         return '';
       default:
+        // Questions 3 through 12 are optional per specification
         return '';
     }
   };
@@ -106,7 +103,7 @@ export default function QuestionnaireContainer({ onGenerateSummary, onBackToDash
       setCurrentStep((prev) => prev + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      // Step 12 -> Review screen
+      // Step 12 -> Review My Answers screen
       setIsReviewing(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -117,8 +114,6 @@ export default function QuestionnaireContainer({ onGenerateSummary, onBackToDash
     if (currentStep > 1) {
       setCurrentStep((prev) => prev - 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      onBackToDashboard();
     }
   };
 
@@ -131,16 +126,23 @@ export default function QuestionnaireContainer({ onGenerateSummary, onBackToDash
   const handleBackToQuestions = () => {
     setIsReviewing(false);
     setCurrentStep(12);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleTriggerGenerate = () => {
     onGenerateSummary(formData);
   };
 
+  const patientName = activePatient?.fullName || 'Patient';
+  const relationship = activePatient?.relationship || 'Self';
+
   return (
     <div className="questionnaire-wrapper">
       {/* Header */}
       <div className="page-header">
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: 'var(--cs-primary-light)', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--cs-primary)', marginBottom: '0.5rem' }}>
+          <span>Preparing Visit for: <strong>{patientName}</strong> ({relationship})</span>
+        </div>
         <h1 className="page-title">Prepare for My Doctor Visit</h1>
         <p className="page-subtitle">
           Answer a few questions to organize what you're experiencing into a clear summary you can share with a doctor.
@@ -170,7 +172,7 @@ export default function QuestionnaireContainer({ onGenerateSummary, onBackToDash
               />
 
               {validationError && (
-                <div className="validation-message" role="alert">
+                <div className="validation-message" role="alert" style={{ marginTop: '1.25rem' }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="10" />
                     <line x1="12" y1="8" x2="12" y2="12" />
@@ -182,14 +184,17 @@ export default function QuestionnaireContainer({ onGenerateSummary, onBackToDash
             </div>
 
             <div className="step-actions">
+              {/* On Question 1: Back is disabled */}
               <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={handleBack}
+                disabled={currentStep === 1}
               >
-                {currentStep === 1 ? 'Back to Dashboard' : 'Back'}
+                Back
               </button>
 
+              {/* On Questions 1-11: Continue | On Question 12: Review My Answers */}
               <button
                 type="button"
                 className="btn btn-primary"

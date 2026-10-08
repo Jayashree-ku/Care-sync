@@ -1,24 +1,32 @@
-export const defaultPatientProfile = {
-  fullName: "Jayashree K U",
-  age: "24",
-  gender: "Female",
-  bloodGroup: "Not specified",
-  emergencyContact: "Not specified",
-  preferredLanguage: "English"
-};
-
 const STORAGE_KEY = 'caresync_patient_profile';
+
+export const fallbackPatientProfile = {
+  fullName: 'Name not provided',
+  age: 'Not specified',
+  gender: 'Not specified',
+  bloodGroup: 'Not specified',
+  emergencyContact: 'Not specified',
+  preferredLanguage: 'Not specified'
+};
 
 export function getPatientProfile() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
-      return JSON.parse(saved);
+      const parsed = JSON.parse(saved);
+      return {
+        fullName: parsed.fullName?.trim() || 'Name not provided',
+        age: parsed.age?.trim() || 'Not specified',
+        gender: parsed.gender?.trim() || 'Not specified',
+        bloodGroup: parsed.bloodGroup?.trim() || 'Not specified',
+        emergencyContact: parsed.emergencyContact?.trim() || 'Not specified',
+        preferredLanguage: parsed.preferredLanguage?.trim() || 'Not specified'
+      };
     }
   } catch (e) {
     console.error('Failed to read patient profile', e);
   }
-  return defaultPatientProfile;
+  return { ...fallbackPatientProfile };
 }
 
 export function savePatientProfile(profile) {

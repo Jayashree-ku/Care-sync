@@ -4,61 +4,97 @@ import Dashboard from './components/Dashboard';
 import QuestionnaireContainer from './components/Questionnaire/QuestionnaireContainer';
 import SummaryView from './components/Summary/SummaryView';
 import ShowDoctorView from './components/Summary/ShowDoctorView';
-import { getPatientProfile } from './data/defaultPatient';
+import LoginPage from './components/Auth/LoginPage';
+import SignupPage from './components/Auth/SignupPage';
+import PatientsPage from './components/Patients/PatientsPage';
+import ProfilePage from './components/Profile/ProfilePage';
+import MedicationsPage from './components/Medications/MedicationsPage';
+import ReportsPage from './components/Reports/ReportsPage';
+import MedicalInfoPage from './components/MedicalInfo/MedicalInfoPage';
+
 import {
-  loadQuestionnaireData,
-  clearQuestionnaireData
-} from './data/questionnaireData';
+  initializeFamilyStore,
+  getAuthUser,
+  isUserLoggedIn,
+  loginUser,
+  signupUser,
+  logoutUser,
+  getPatients,
+  getActivePatient,
+  setActivePatientId,
+  addPatient,
+  updatePatient,
+  addPatientMedication,
+  removePatientMedication,
+  addPatientReport,
+  removePatientReport,
+  savePatientDoctorVisit
+} from './data/familyStore';
+
 import { generateDoctorVisitSummary } from './utils/summaryGenerator';
 
 function getNormalizedRoute() {
-  // Check hash first (ideal for GitHub Pages public hosting)
   const hash = window.location.hash.replace(/^#/, '');
   if (hash) {
     return hash.startsWith('/') ? hash : `/${hash}`;
   }
-
   const pathname = window.location.pathname;
-  if (pathname.includes('/doctor-visit/summary')) {
-    return '/doctor-visit/summary';
-  }
-  if (pathname.includes('/doctor-visit')) {
-    return '/doctor-visit';
-  }
+  if (pathname.includes('/doctor-visit/summary')) return '/doctor-visit/summary';
+  if (pathname.includes('/doctor-visit')) return '/doctor-visit';
+  if (pathname.includes('/login')) return '/login';
+  if (pathname.includes('/signup')) return '/signup';
+  if (pathname.includes('/patients')) return '/patients';
+  if (pathname.includes('/medications')) return '/medications';
+  if (pathname.includes('/reports')) return '/reports';
+  if (pathname.includes('/profile')) return '/profile';
+  if (pathname.includes('/medical-info')) return '/medical-info';
   return '/';
 }
 
 export default function App() {
-  // Routing state
-  const [currentPath, setCurrentPath] = useState(() => getNormalizedRoute());
+  // Initialize storage seeds once on mount
+  useEffect(() => {
+    initializeFamilyStore();
+  }, []);
 
-  // Patient profile
-  const [patientProfile] = useState(() => getPatientProfile());
+  // Authentication & session state
+  const [isLoggedIn, setIsLoggedIn] = useState(() => isUserLoggedIn());
+  const [authUser, setAuthUser] = useState(() => getAuthUser());
 
-  // Questionnaire data & draft tracking
-  const [hasDraft, setHasDraft] = useState(() => {
-    const data = loadQuestionnaireData();
-    return Boolean(data.currentSymptoms && data.currentSymptoms.trim());
+  // Family & Patients state
+  const [patients, setPatients] = useState(() => getPatients());
+  const [activePatient, setActivePatient] = useState(() => getActivePatient());
+
+  // Route state
+  const [currentPath, setCurrentPath] = useState(() => {
+    const route = getNormalizedRoute();
+    if (!isUserLoggedIn() && route !== '/signup') {
+      return '/login';
+    }
+    return route;
   });
 
-  // Summary state
-  const [generatedSummary, setGeneratedSummary] = useState(() => {
+  // Active Doctor Visit Summary
+  const [activeSummary, setActiveSummary] = useState(() => {
     try {
       const saved = localStorage.getItem('caresync_active_summary');
       if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error('Failed to load saved summary', e);
-    }
+    } catch (e) {}
     return null;
   });
 
-  // Show Doctor presentation mode
+  // Show Doctor Presentation Mode
   const [isShowDoctorMode, setIsShowDoctorMode] = useState(false);
 
-  // Sync route with browser history and hashchange
+  // Sync route with browser history and hash change
   useEffect(() => {
     const handleRouteSync = () => {
-      setCurrentPath(getNormalizedRoute());
+      const route = getNormalizedRoute();
+      if (!isLoggedIn && route !== '/signup') {
+        setCurrentPath('/login');
+      } else {
+        setCurrentPath(route);
+      }
     };
     window.addEventListener('popstate', handleRouteSync);
     window.addEventListener('hashchange', handleRouteSync);
@@ -66,103 +102,277 @@ export default function App() {
       window.removeEventListener('popstate', handleRouteSync);
       window.removeEventListener('hashchange', handleRouteSync);
     };
+  }, [isLoggedIn]);
+
+  // Listen to custom patient changed event
+  useEffect(() => {
+    const handlePatientChanged = () => {
+      setPatients(getPatients());
+      setActivePatient(getActivePatient());
+    };
+    window.addEventListener('caresync_patient_changed', handlePatientChanged);
+    return () => window.removeEventListener('caresync_patient_changed', handlePatientChanged);
   }, []);
 
   const navigateTo = (path) => {
-    // Set both hash and pushState so that it works seamlessly both on GitHub Pages and local server
     window.location.hash = path;
     setCurrentPath(path);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // ----------------- Auth Handlers -----------------
+
+  const handleLogin = (email, password, rememberMe) => {
+    const result = loginUser(email, password, rememberMe);
+    if (result.success) {
+      setIsLoggedIn(true);
+      setAuthUser(result.user);
+      setPatients(getPatients());
+      setActivePatient(getActivePatient());
+      navigateTo('/');
+    }
+  };
+
+  const handleSignup = (accountData, patientData) => {
+    const result = signupUser(accountData, patientData);
+    setIsLoggedIn(true);
+    setAuthUser(result.user);
+    setPatients(getPatients());
+    setActivePatient(result.patient);
+    navigateTo('/');
+  };
+
+  const handleSignOut = () => {
+    logoutUser();
+    setIsLoggedIn(false);
+    setAuthUser(null);
+    navigateTo('/login');
+  };
+
+  // ----------------- Patient Handlers -----------------
+
+  const handleSelectPatient = (patientId) => {
+    setActivePatientId(patientId);
+    const updatedPatients = getPatients();
+    setPatients(updatedPatients);
+    const found = updatedPatients.find(p => p.id === patientId);
+    setActivePatient(found || updatedPatients[0]);
+
+    // Reset current active summary so Dad doesn't see Mom's summary
+    setActiveSummary(null);
+    localStorage.removeItem('caresync_active_summary');
+
+    navigateTo('/');
+  };
+
+  const handleAddPatient = (patientFormData) => {
+    const newPatient = addPatient(patientFormData);
+    const updated = getPatients();
+    setPatients(updated);
+    setActivePatient(newPatient);
+    navigateTo('/patients');
+  };
+
+  const handleUpdateProfile = (patientId, updatedFields) => {
+    updatePatient(patientId, updatedFields);
+    const updated = getPatients();
+    setPatients(updated);
+    const current = updated.find(p => p.id === patientId);
+    setActivePatient(current || updated[0]);
+  };
+
+  const handleAddMedication = (patientId, medication) => {
+    addPatientMedication(patientId, medication);
+    const updated = getPatients();
+    setPatients(updated);
+    setActivePatient(updated.find(p => p.id === patientId));
+  };
+
+  const handleRemoveMedication = (patientId, medicationId) => {
+    removePatientMedication(patientId, medicationId);
+    const updated = getPatients();
+    setPatients(updated);
+    setActivePatient(updated.find(p => p.id === patientId));
+  };
+
+  const handleAddReport = (patientId, report) => {
+    addPatientReport(patientId, report);
+    const updated = getPatients();
+    setPatients(updated);
+    setActivePatient(updated.find(p => p.id === patientId));
+  };
+
+  const handleRemoveReport = (patientId, reportId) => {
+    removePatientReport(patientId, reportId);
+    const updated = getPatients();
+    setPatients(updated);
+    setActivePatient(updated.find(p => p.id === patientId));
+  };
+
+  // ----------------- Doctor Visit Handlers -----------------
+
   const handleStartDoctorVisit = () => {
     navigateTo('/doctor-visit');
   };
 
-  const handleResetDraft = () => {
-    if (window.confirm('Are you sure you want to clear your current answers and start fresh?')) {
-      clearQuestionnaireData();
-      localStorage.removeItem('caresync_active_summary');
-      setGeneratedSummary(null);
-      setHasDraft(false);
-      navigateTo('/doctor-visit');
-    }
-  };
+  const handleGenerateDoctorVisitSummary = (formData) => {
+    if (!activePatient) return;
+    const summary = generateDoctorVisitSummary(formData, activePatient);
+    savePatientDoctorVisit(activePatient.id, summary, formData);
 
-  const handleGenerateSummary = (formData) => {
-    const summary = generateDoctorVisitSummary(formData, patientProfile);
-    setGeneratedSummary(summary);
+    setActiveSummary(summary);
     try {
       localStorage.setItem('caresync_active_summary', JSON.stringify(summary));
-    } catch (e) {
-      console.error('Failed to store summary', e);
-    }
+    } catch (e) {}
+
+    const updated = getPatients();
+    setPatients(updated);
+    setActivePatient(updated.find(p => p.id === activePatient.id));
+
     navigateTo('/doctor-visit/summary');
   };
 
-  const handleEditSummary = () => {
-    navigateTo('/doctor-visit');
-  };
+  // ----------------- Presentation Mode -----------------
 
-  // If in Show Doctor Mode, render pure clinical distraction-free view
-  if (isShowDoctorMode && generatedSummary) {
+  if (isShowDoctorMode && activeSummary) {
     return (
       <ShowDoctorView
-        summary={generatedSummary}
+        summary={activeSummary}
         onExitDoctorMode={() => setIsShowDoctorMode(false)}
       />
     );
   }
+
+  // ----------------- Unauthenticated Views -----------------
+
+  if (!isLoggedIn) {
+    if (currentPath === '/signup') {
+      return (
+        <SignupPage
+          onSignupSuccess={handleSignup}
+          onNavigateToLogin={() => navigateTo('/login')}
+        />
+      );
+    }
+    return (
+      <LoginPage
+        onLoginSuccess={handleLogin}
+        onNavigateToSignup={() => navigateTo('/signup')}
+      />
+    );
+  }
+
+  // ----------------- Authenticated Layout -----------------
 
   return (
     <div className="app-container">
       <Navbar
         currentPath={currentPath}
         onNavigate={navigateTo}
-        patientProfile={patientProfile}
+        activePatient={activePatient}
+        patients={patients}
+        onSelectPatient={handleSelectPatient}
+        onSignOut={handleSignOut}
+        authUser={authUser}
       />
 
       <main className="main-content">
+        {/* DASHBOARD */}
         {currentPath === '/' && (
           <Dashboard
+            activePatient={activePatient}
+            patients={patients}
+            onSelectPatient={handleSelectPatient}
             onStartDoctorVisit={handleStartDoctorVisit}
-            patientProfile={patientProfile}
-            hasExistingDraft={hasDraft}
-            onResetDraft={handleResetDraft}
+            onNavigate={navigateTo}
+            onUploadReportClick={() => navigateTo('/reports')}
+            onAddMedicationClick={() => navigateTo('/medications')}
           />
         )}
 
-        {currentPath === '/doctor-visit' && (
+        {/* FAMILY / PATIENTS MANAGEMENT */}
+        {currentPath === '/patients' && (
+          <PatientsPage
+            patients={patients}
+            activePatientId={activePatient?.id}
+            onSelectPatient={handleSelectPatient}
+            onAddPatient={handleAddPatient}
+            onBackToDashboard={() => navigateTo('/')}
+          />
+        )}
+
+        {/* PROFILE */}
+        {currentPath === '/profile' && activePatient && (
+          <ProfilePage
+            activePatient={activePatient}
+            onUpdateProfile={handleUpdateProfile}
+            onBackToDashboard={() => navigateTo('/')}
+          />
+        )}
+
+        {/* MEDICATIONS */}
+        {currentPath === '/medications' && activePatient && (
+          <MedicationsPage
+            activePatient={activePatient}
+            onAddMedication={handleAddMedication}
+            onRemoveMedication={handleRemoveMedication}
+            onBackToDashboard={() => navigateTo('/')}
+          />
+        )}
+
+        {/* REPORTS */}
+        {currentPath === '/reports' && activePatient && (
+          <ReportsPage
+            activePatient={activePatient}
+            onAddReport={handleAddReport}
+            onRemoveReport={handleRemoveReport}
+            onBackToDashboard={() => navigateTo('/')}
+          />
+        )}
+
+        {/* UNDERSTAND MEDICAL INFORMATION */}
+        {currentPath === '/medical-info' && activePatient && (
+          <MedicalInfoPage
+            activePatient={activePatient}
+            onAddReport={handleAddReport}
+            onBackToDashboard={() => navigateTo('/')}
+          />
+        )}
+
+        {/* PREPARE FOR DOCTOR VISIT */}
+        {currentPath === '/doctor-visit' && activePatient && (
           <QuestionnaireContainer
-            onGenerateSummary={handleGenerateSummary}
+            activePatient={activePatient}
+            onGenerateSummary={handleGenerateDoctorVisitSummary}
             onBackToDashboard={() => navigateTo('/')}
           />
         )}
 
-        {currentPath === '/doctor-visit/summary' && generatedSummary && (
+        {/* DOCTOR VISIT SUMMARY */}
+        {currentPath === '/doctor-visit/summary' && activeSummary && (
           <SummaryView
-            summary={generatedSummary}
+            summary={activeSummary}
             onShowDoctor={() => setIsShowDoctorMode(true)}
-            onEditSummary={handleEditSummary}
+            onEditSummary={() => navigateTo('/doctor-visit')}
             onBackToDashboard={() => navigateTo('/')}
           />
         )}
 
-        {/* Fallback if user lands on /doctor-visit/summary without existing summary */}
-        {currentPath === '/doctor-visit/summary' && !generatedSummary && (
+        {/* SUMMARY FALLBACK */}
+        {currentPath === '/doctor-visit/summary' && !activeSummary && (
           <div className="cs-card" style={{ textAlign: 'center', padding: '3rem 2rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.75rem' }}>
-              No Summary Available Yet
+              No Summary Available for {activePatient?.fullName || 'Current Patient'}
             </h2>
             <p style={{ color: 'var(--cs-text-muted)', marginBottom: '1.5rem' }}>
-              Please answer the doctor visit questionnaire to generate your summary.
+              Please complete the doctor visit questionnaire to generate a summary.
             </p>
             <button
               type="button"
               className="btn btn-primary"
               onClick={() => navigateTo('/doctor-visit')}
             >
-              Start Questionnaire
+              Start Doctor Visit Prep
             </button>
           </div>
         )}
